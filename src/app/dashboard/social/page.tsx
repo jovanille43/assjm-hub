@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
-import { MessageCircle } from "lucide-react";
+import Link from "next/link";
+import { MessageCircle, MessagesSquare } from "lucide-react";
 import { auth } from "@/auth";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { Button } from "@/components/ui/button";
 import { getFeed } from "@/lib/social";
 import { PostComposer } from "@/components/social/post-composer";
 import { PostCard } from "@/components/social/post-card";
@@ -20,6 +22,14 @@ export default async function SocialPage() {
         icon={MessageCircle}
         title="Le fil du club"
         subtitle="Partage les moments forts, réagis, commente — la vie du club, en direct."
+        action={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/dashboard/messages">
+              <MessagesSquare className="size-4" />
+              Messagerie
+            </Link>
+          </Button>
+        }
       />
 
       <PostComposer authorName={session.user.name ?? "Moi"} />

@@ -6,15 +6,10 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  BarChart3,
-  Bell,
-  CalendarPlus,
+  Download,
   Gamepad2,
-  HeartCrack,
   LayoutDashboard,
-  LayoutGrid,
   LogOut,
-  Megaphone,
   MessageCircle,
   MessagesSquare,
   Menu,
@@ -22,22 +17,35 @@ import {
   ShieldHalf,
   UserCog,
   X,
-  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const STAFF_ROLES = ["ADMIN", "DIRIGEANT", "COACH"];
+// Mêmes regroupements que la nav desktop (cohérence).
+const CLUB_EXTRA = [
+  "/dashboard/convocations",
+  "/dashboard/votes",
+  "/dashboard/apres-match",
+  "/dashboard/match-center",
+  "/dashboard/championnat",
+  "/dashboard/classement",
+  "/dashboard/annonces",
+  "/dashboard/blessures",
+  "/dashboard/entrainements",
+  "/dashboard/saison",
+  "/dashboard/calendrier",
+  "/dashboard/club/palmares",
+  "/calendrier",
+  "/stats",
+  "/equipes",
+];
+const JEUX_EXTRA = ["/dashboard/duels", "/dashboard/pronos", "/dashboard/packs", "/dashboard/quiz"];
 
 const TABS: { href: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; extra?: string[] }[] = [
   { href: "/dashboard", label: "Accueil", icon: LayoutDashboard, exact: true },
-  { href: "/dashboard/club", label: "Le club", icon: ShieldHalf, extra: ["/dashboard/convocations", "/dashboard/votes", "/dashboard/apres-match", "/dashboard/match-center", "/dashboard/championnat", "/calendrier", "/stats", "/equipes", "/dashboard/classement", "/dashboard/annonces", "/dashboard/blessures", "/dashboard/entrainements", "/dashboard/saison"] },
-  { href: "/dashboard/social", label: "Communauté", icon: MessageCircle, extra: ["/dashboard/messages"] },
-  { href: "/dashboard/profil", label: "Mon profil", icon: UserCog },
-];
-
-const MORE_LINKS = [
-  { href: "/dashboard/jeux", label: "Jeux", icon: Gamepad2 },
-  { href: "/dashboard/messages", label: "Messagerie", icon: MessagesSquare },
+  { href: "/dashboard/club", label: "Club", icon: ShieldHalf, extra: CLUB_EXTRA },
+  { href: "/dashboard/jeux", label: "Jeux", icon: Gamepad2, extra: JEUX_EXTRA },
+  { href: "/dashboard/social", label: "Social", icon: MessageCircle, extra: ["/dashboard/messages"] },
+  { href: "/dashboard/profil", label: "Profil", icon: UserCog },
 ];
 
 type BeforeInstallPromptEvent = Event & {
@@ -77,26 +85,12 @@ export function MobileTabBar() {
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
 
-  const JEUX_PATHS = ["/dashboard/jeux", "/dashboard/duels", "/dashboard/pronos", "/dashboard/packs"];
-  const moreActive =
-    MORE_LINKS.some((l) => isActive(l.href)) ||
-    pathname.startsWith("/dashboard/admin") ||
-    JEUX_PATHS.some((e) => pathname === e || pathname.startsWith(e + "/"));
-
+  // « Plus » = le reste qui n'est pas une grande section (messagerie, admin).
   const extraLinks = [
-    ...MORE_LINKS,
-    { href: "/dashboard/annonces", label: "Annonces", icon: Megaphone },
-    { href: "/dashboard/blessures", label: "Blessures", icon: HeartCrack },
-    ...(STAFF_ROLES.includes(role)
-      ? [
-          { href: "/dashboard/calendrier",        label: "Gérer événements",  icon: CalendarPlus },
-          { href: "/dashboard/entrainements",      label: "Présences entraîn.", icon: Bell },
-          { href: "/dashboard/match-center/compo", label: "Compo pré-match",   icon: LayoutGrid },
-          { href: "/dashboard/saison",             label: "Rapport saison",    icon: BarChart3 },
-        ]
-      : []),
+    { href: "/dashboard/messages", label: "Messagerie", icon: MessagesSquare },
     ...(role === "ADMIN" ? [{ href: "/dashboard/admin", label: "Admin", icon: Shield }] : []),
   ];
+  const moreActive = extraLinks.some((l) => isActive(l.href));
 
   return (
     <>
@@ -120,7 +114,7 @@ export function MobileTabBar() {
             >
               <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-muted" />
               <div className="mb-2 flex items-center justify-between">
-                <p className="font-display text-lg font-bold">Tout le club</p>
+                <p className="font-display text-lg font-bold">Plus</p>
                 <button onClick={() => setMoreOpen(false)} className="rounded-full p-1.5 hover:bg-secondary" aria-label="Fermer">
                   <X className="size-5" />
                 </button>
@@ -165,7 +159,7 @@ export function MobileTabBar() {
 
       {/* Barre d'onglets */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)] md:hidden">
-        <div className="grid grid-cols-5">
+        <div className="grid grid-cols-6">
           {TABS.map((t) => {
             const active =
               isActive(t.href, t.exact) ||

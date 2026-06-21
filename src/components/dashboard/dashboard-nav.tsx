@@ -4,30 +4,43 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
-  BarChart3,
-  Bell,
-  CalendarPlus,
   Gamepad2,
-  HeartCrack,
   LayoutDashboard,
-  LayoutGrid,
   MessageCircle,
-  Megaphone,
   Shield,
   ShieldHalf,
   UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const STAFF_ROLES = ["ADMIN", "DIRIGEANT", "COACH"];
+// Routes regroupées sous chaque hub (pour le surlignage de l'onglet actif).
+// « Le club » est la porte d'entrée unique : tout y est rangé (cf. /dashboard/club).
+const CLUB_EXTRA = [
+  "/dashboard/convocations",
+  "/dashboard/votes",
+  "/dashboard/apres-match",
+  "/dashboard/match-center",
+  "/dashboard/championnat",
+  "/dashboard/classement",
+  "/dashboard/annonces",
+  "/dashboard/blessures",
+  "/dashboard/entrainements",
+  "/dashboard/saison",
+  "/dashboard/calendrier",
+  "/dashboard/club/palmares",
+  "/calendrier",
+  "/stats",
+  "/equipes",
+];
+const JEUX_EXTRA = ["/dashboard/duels", "/dashboard/pronos", "/dashboard/packs", "/dashboard/quiz"];
 
-// Catégories de haut niveau, simples et intuitives.
+// Grandes sections uniquement — chaque hub contient le reste.
 const LINKS: { href: string; label: string; icon: typeof LayoutDashboard; extra?: string[] }[] = [
   { href: "/dashboard", label: "Accueil", icon: LayoutDashboard },
-  { href: "/dashboard/club", label: "Le club", icon: ShieldHalf, extra: ["/dashboard/convocations", "/dashboard/votes", "/dashboard/apres-match", "/dashboard/match-center", "/dashboard/championnat", "/calendrier", "/stats", "/equipes", "/dashboard/classement", "/dashboard/annonces", "/dashboard/blessures", "/dashboard/entrainements", "/dashboard/saison"] },
+  { href: "/dashboard/club", label: "Le club", icon: ShieldHalf, extra: CLUB_EXTRA },
+  { href: "/dashboard/jeux", label: "Jeux", icon: Gamepad2, extra: JEUX_EXTRA },
   { href: "/dashboard/social", label: "Communauté", icon: MessageCircle, extra: ["/dashboard/messages"] },
   { href: "/dashboard/profil", label: "Mon profil", icon: UserCog },
-  { href: "/dashboard/jeux", label: "Jeux", icon: Gamepad2, extra: ["/dashboard/duels", "/dashboard/pronos", "/dashboard/packs"] },
 ];
 
 export function DashboardNav() {
@@ -36,17 +49,6 @@ export function DashboardNav() {
   const role = data?.user?.role ?? "";
 
   let links = [...LINKS];
-  links = [...links, { href: "/dashboard/annonces", label: "Annonces", icon: Megaphone }];
-  links = [...links, { href: "/dashboard/blessures", label: "Blessures", icon: HeartCrack }];
-  if (STAFF_ROLES.includes(role)) {
-    links = [
-      ...links,
-      { href: "/dashboard/calendrier",           label: "Gérer événements", icon: CalendarPlus },
-      { href: "/dashboard/entrainements",         label: "Présences entraîn.", icon: Bell },
-      { href: "/dashboard/match-center/compo",    label: "Compo pré-match",  icon: LayoutGrid },
-      { href: "/dashboard/saison",                label: "Rapport saison",   icon: BarChart3 },
-    ];
-  }
   if (role === "ADMIN") {
     links = [...links, { href: "/dashboard/admin", label: "Admin", icon: Shield }];
   }
