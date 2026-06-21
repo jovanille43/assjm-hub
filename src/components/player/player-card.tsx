@@ -26,29 +26,6 @@ export const UPGRADE_COSTS = [0, 150, 400, 900, 2000, 4500] as const;
 
 export const UPGRADE_LABELS = ["COMMON", "BRONZE", "ARGENT", "OR", "ÉPIQUE", "LÉGENDAIRE"] as const;
 
-const UPGRADE_BORDER: Record<number, string> = {
-  0: "", // auto depuis l'overall
-  1: "bg-gradient-to-br from-amber-700 via-amber-800 to-amber-950",
-  2: "bg-gradient-to-br from-slate-300 via-slate-400 to-slate-600",
-  3: "bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-600",
-  4: "bg-gradient-to-br from-purple-400 via-purple-600 to-violet-800",
-  5: "bg-gradient-to-br from-amber-300 via-club to-amber-500",
-};
-
-const OVR_BORDER: Record<string, string> = {
-  legend: "bg-gradient-to-br from-amber-300 via-club to-amber-400",
-  gold: "bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600",
-  silver: "bg-gradient-to-br from-slate-200 via-slate-300 to-slate-500",
-  bronze: "bg-gradient-to-br from-amber-600 via-amber-700 to-amber-900",
-};
-
-function tierOf(ovr: number) {
-  if (ovr >= 85) return "legend";
-  if (ovr >= 78) return "gold";
-  if (ovr >= 70) return "silver";
-  return "bronze";
-}
-
 export function applyUpgrade(player: PlayerCardData) {
   const bonus = UPGRADE_BONUS[player.upgradeLevel ?? 0] ?? 0;
   return {
@@ -71,8 +48,6 @@ export function PlayerCard({
   const upgradeLevel = player.upgradeLevel ?? 0;
   const upgraded = applyUpgrade(player);
   const ovr = calcOverall(upgraded);
-  const tier = tierOf(ovr);
-  const border = upgradeLevel > 0 ? UPGRADE_BORDER[upgradeLevel] : OVR_BORDER[tier];
   const pos = POSITIONS[player.position as keyof typeof POSITIONS] ?? POSITIONS.MID;
   const stats = [
     { k: "RAP", v: upgraded.pace },
@@ -84,16 +59,12 @@ export function PlayerCard({
   ];
 
   return (
-    <div
-      className={cn(
-        "w-64 rounded-[1.8rem] p-[3px] shadow-glow-navy",
-        border,
-        className,
-      )}
-    >
-      <div className="relative flex aspect-[63/88] flex-col overflow-hidden rounded-[1.55rem] bg-gradient-to-b from-navy-800 to-navy-950 p-5 text-white">
-        <div className="absolute inset-0 bg-grid opacity-40" />
-        <div className="pointer-events-none absolute -right-10 -top-10 size-32 rounded-full bg-club/20 blur-2xl" />
+    <div className={cn("group w-64 [perspective:1200px]", className)}>
+      <div className="fut-frame relative rounded-[1.8rem] p-[3px] transition-transform duration-300 ease-out will-change-transform group-hover:[transform:rotateX(5deg)_rotateY(-7deg)_translateY(-6px)_scale(1.03)]">
+        <div className="relative flex aspect-[63/88] flex-col overflow-hidden rounded-[1.55rem] bg-gradient-to-b from-navy-800 to-navy-950 p-5 text-white">
+          <div className="absolute inset-0 bg-grid opacity-40" />
+          <div className="pointer-events-none absolute inset-0 fut-holo" />
+          <div className="pointer-events-none absolute -right-10 -top-10 size-32 rounded-full bg-club/20 blur-2xl" />
 
         {/* Badge niveau amélioration */}
         {upgradeLevel > 0 && (
@@ -172,6 +143,10 @@ export function PlayerCard({
               <span className="text-xs font-medium text-white/50">{s.k}</span>
             </div>
           ))}
+        </div>
+
+        {/* Brillance qui balaie la carte (au-dessus du contenu) */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-3/5 fut-shine" />
         </div>
       </div>
     </div>
