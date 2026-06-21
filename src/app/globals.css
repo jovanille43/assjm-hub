@@ -1,0 +1,193 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ───────────────────────────── DESIGN SYSTEM ASSJM ─────────────────────────────
+   Rouge = action / énergie. Bleu marine = structure / prestige. Blanc & crème = respiration.
+   Références discrètes au patrimoine passementier : rubans, lignes tissées, mouvement.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 223 67% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 223 67% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 223 67% 11%;
+
+    /* Rouge club comme couleur d'action principale */
+    --primary: 354 80% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 20% 96%;
+    --secondary-foreground: 223 67% 16%;
+
+    --muted: 220 20% 96%;
+    --muted-foreground: 220 9% 43%;
+
+    --accent: 354 70% 96%;
+    --accent-foreground: 354 80% 40%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 16% 89%;
+    --input: 220 16% 89%;
+    --ring: 354 80% 50%;
+
+    --radius: 0.85rem;
+
+    /* Variables décoratives */
+    --ribbon: 354 80% 50%;
+    --grid: 223 40% 55%;
+    --glow: 354 80% 55%;
+  }
+
+  .dark {
+    --background: 224 62% 7%;
+    --foreground: 210 30% 96%;
+
+    --card: 223 52% 11%;
+    --card-foreground: 210 30% 96%;
+
+    --popover: 223 56% 9%;
+    --popover-foreground: 210 30% 96%;
+
+    --primary: 354 81% 56%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 223 40% 16%;
+    --secondary-foreground: 210 30% 96%;
+
+    --muted: 223 35% 15%;
+    --muted-foreground: 218 15% 65%;
+
+    --accent: 223 45% 18%;
+    --accent-foreground: 210 30% 96%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 223 35% 18%;
+    --input: 223 35% 20%;
+    --ring: 354 81% 56%;
+
+    --ribbon: 354 81% 60%;
+    --grid: 210 60% 70%;
+    --glow: 354 81% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv01";
+  }
+  ::selection {
+    @apply bg-club text-white;
+  }
+
+  /* Titres : police display condensée + tracking sportif */
+  h1, h2, h3 {
+    font-family: var(--font-display), system-ui, sans-serif;
+    @apply tracking-tight;
+  }
+
+  /* Scrollbar sur-mesure */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-navy/30;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-club/60;
+  }
+}
+
+@layer components {
+  /* Conteneur de section standard */
+  .section {
+    @apply container py-16 md:py-24;
+  }
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-club;
+  }
+
+  /* Dégradé de texte signature (marine -> rouge) */
+  .text-gradient {
+    @apply bg-gradient-to-r from-navy via-navy-500 to-club bg-clip-text text-transparent dark:from-white dark:via-blue-200 dark:to-club-300;
+  }
+
+  /* Carte verre dépoli premium */
+  .glass {
+    @apply border border-white/10 bg-white/70 backdrop-blur-xl dark:bg-white/5;
+  }
+
+  /* Ruban passementier décoratif (bordure tissée animée) */
+  .ribbon-line {
+    background-image: repeating-linear-gradient(
+      90deg,
+      hsl(var(--ribbon)) 0 22px,
+      transparent 22px 30px,
+      hsl(var(--primary)) 30px 36px,
+      transparent 36px 52px
+    );
+    background-size: 52px 100%;
+  }
+
+  /* Effet "brillance" qui traverse (skeletons, CTA) */
+  .shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .shine::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.35),
+      transparent
+    );
+    animation: shimmer 2.8s infinite;
+  }
+
+  /* Fond grille marine subtil */
+  .bg-grid {
+    background-image:
+      linear-gradient(hsl(var(--grid) / 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--grid) / 0.07) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+  /* Masque le contenu hors viewport pour révélations GSAP */
+  .clip-reveal {
+    clip-path: inset(0 0 100% 0);
+  }
+}

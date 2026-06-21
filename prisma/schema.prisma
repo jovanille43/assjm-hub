@@ -1,0 +1,627 @@
+// ASSJM HUB — Schéma de données
+// Base : SQLite (dev, zéro config). Compatible PostgreSQL en prod (changer le provider).
+// Note : SQLite ne supporte ni les enums ni les listes scalaires.
+//        On utilise des champs String (valeurs documentées dans src/lib/enums.ts).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────── UTILISATEURS & AUTH ─────────────────────────────
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String
+  hashedPassword String?
+  image          String?
+  // Rôle : ADMIN | DIRIGEANT | COACH | JOUEUR | SUPPORTER
+  role           String    @default("SUPPORTER")
+  bio            String?
+  phone          String?
+  emailVerified  DateTime?
+  points         Int       @default(0) // gamification
+  pronoBoosts    Int       @default(0) // boosts « Prono ×2 » gagnés dans les packs
+  weeklyPacksOpened Int    @default(0) // packs ouverts cette semaine
+  lastPackWeek   String    @default("") // ISO week ex: "2026-W24"
+  lastQuizAt     DateTime? // horodatage du dernier quiz (cooldown 24h)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  player    Player?
+  posts     Post[]
+  comments  Comment[]
+  likes     Like[]
+  votes     Vote[]
+  accounts  Account[]
+  sessions  Session[]
+  badges    UserBadge[]
+  messages  Message[]
+  duelsChallenged Duel[]  @relation("DuelChallenger")
+  duelsReceived   Duel[]  @relation("DuelOpponent")
+  predictions     Prediction[]
+  notifications   Notification[]
+  pushSubscriptions PushSubscription[]
+  announcements Announcement[]
+
+  @@index([role])
+}
+
+// Modèles standard NextAuth (prêts pour la Phase 2)
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ───────────────────────────── ÉQUIPES & EFFECTIFS ─────────────────────────────
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  // Catégorie : U7 U9 U11 U13 U15 U18 SENIOR_A SENIOR_B VETERAN FEMININE
+  category    String
+  season      String   @default("2025-2026")
+  description String?
+  photo       String?
+  color       String?  // couleur d'accent de l'équipe
+  createdAt   DateTime @default(now())
+
+  players       Player[]
+  staff         TeamStaff[]
+  matches       Match[]
+  events        Event[]
+  standings     Standing[]
+  announcements Announcement[]
+}
+
+model TeamStaff {
+  id     String @id @default(cuid())
+  teamId String
+  name   String
+  // Rôle : COACH | ADJOINT | DIRIGEANT | GARDIEN_COACH | KINE
+  role   String
+  photo  String?
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+model Player {
+  id        String    @id @default(cuid())
+  userId    String?   @unique
+  firstName String
+  lastName  String
+  // Poste : GK | DEF | MID | FWD
+  position  String    @default("MID")
+  number    Int?
+  photo     String?
+  birthDate DateTime?
+  height    Int?
+  weight    Int?
+  bio       String?
+  teamId    String?
+  joinedAt  DateTime  @default(now())
+
+  // Stats "carte FUT" (0-99)
+  pace      Int @default(70)
+  shooting  Int @default(70)
+  passing   Int @default(70)
+  dribbling Int @default(70)
+  defending Int @default(70)
+  physical  Int @default(70)
+
+  // Niveau d'amélioration de la carte : 0=COMMON 1=RARE 2=EPIC 3=LEGENDARY
+  upgradeLevel Int @default(0)
+
+  user             User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  team             Team?             @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  matchStats       MatchStat[]
+  convocations     Convocation[]
+  eventAttendances EventAttendance[]
+  lineupSlots      LineupSlot[]
+  statuses         PlayerStatus[]
+
+  @@index([teamId])
+}
+
+// ───────────────────────────── MATCHS & CALENDRIER ─────────────────────────────
+
+model Match {
+  id           String    @id @default(cuid())
+  teamId       String
+  opponent     String
+  opponentLogo String?
+  date         DateTime
+  // Lieu : HOME | AWAY
+  venue        String    @default("HOME")
+  location     String?   // nom du stade / adresse
+  competition  String?   // ex: "D2 District", "Coupe de la Haute-Loire"
+  scoreFor     Int?
+  scoreAgainst Int?
+  // Statut : SCHEDULED | LIVE | FINISHED | POSTPONED | CANCELLED
+  status       String    @default("SCHEDULED")
+  report       String?   // résumé de match
+  // Vote/notes 3e mi-temps : ALL (tous) | STAFF (encadrants) | OFF (désactivé)
+  votingMode   String    @default("ALL")
+  createdAt    DateTime  @default(now())
+
+  team         Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  stats        MatchStat[]
+  convocations Convocation[]
+  votes        Vote[]
+  predictions  Prediction[]
+  lineup       Lineup?
+
+  @@index([date])
+  @@index([teamId])
+}
+
+model MatchStat {
+  id       String  @id @default(cuid())
+  matchId  String
+  playerId String
+  goals    Int     @default(0)
+  assists  Int     @default(0)
+  minutes  Int     @default(0)
+  yellow   Int     @default(0)
+  red      Int     @default(0)
+  rating   Float?
+  isMvp    Boolean @default(false)
+  started  Boolean @default(true)
+
+  match  Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, playerId])
+  @@index([playerId])
+}
+
+model Convocation {
+  id          String    @id @default(cuid())
+  matchId     String
+  playerId    String
+  // Statut : PENDING | ACCEPTED | DECLINED
+  status      String    @default("PENDING")
+  reason      String?   // justification d'absence
+  respondedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  match  Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, playerId])
+}
+
+model Event {
+  id           String   @id @default(cuid())
+  // Type : TRAINING | MATCH | TOURNAMENT | MEETING | EVENT
+  type         String
+  title        String
+  description  String?
+  start        DateTime
+  end          DateTime?
+  location     String?
+  teamId       String?
+  cancelled    Boolean  @default(false)
+  recurrenceId String?  // regroupe les occurrences d'un entraînement récurrent
+  createdAt    DateTime @default(now())
+
+  team        Team?              @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  attendances EventAttendance[]
+
+  @@index([start])
+  @@index([recurrenceId])
+}
+
+model EventAttendance {
+  id        String   @id @default(cuid())
+  eventId   String
+  playerId  String
+  // Statut : PRESENT | ABSENT | EXCUSED
+  status    String   @default("PRESENT")
+  note      String?
+  createdAt DateTime @default(now())
+
+  event  Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, playerId])
+  @@index([eventId])
+}
+
+// ───────────────────────────── RÉSEAU SOCIAL DU CLUB ─────────────────────────────
+
+model Post {
+  id        String   @id @default(cuid())
+  authorId  String
+  content   String
+  image     String?
+  // Catégorie : GENERAL | RESULTAT | MOMENT | ANNONCE
+  category  String   @default("GENERAL")
+  createdAt DateTime @default(now())
+
+  author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments Comment[]
+  likes    Like[]
+
+  @@index([createdAt])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}
+
+// ───────────────────────────── VOTES (MVP / Joueur du mois) ─────────────────────────────
+
+model Vote {
+  id        String   @id @default(cuid())
+  userId    String
+  // Type : MVP | PLAYER_OF_MONTH
+  type      String
+  matchId   String?
+  // Cible : id du Player voté
+  targetId  String
+  // Période pour player of the month, ex "2026-05"
+  period    String?
+  createdAt DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match Match? @relation(fields: [matchId], references: [id], onDelete: SetNull)
+
+  @@index([type])
+}
+
+// ───────────────────────────── GAMIFICATION ─────────────────────────────
+
+model Badge {
+  id          String @id @default(cuid())
+  key         String @unique
+  name        String
+  description String
+  icon        String // nom d'icône lucide ou emoji
+  // Rareté : COMMON | RARE | EPIC | LEGENDARY
+  rarity      String @default("COMMON")
+
+  users UserBadge[]
+}
+
+model UserBadge {
+  id       String   @id @default(cuid())
+  userId   String
+  badgeId  String
+  earnedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+}
+
+// ───────────────────────────── JEU : DUEL DE PÉNALTYS (PvP asynchrone) ─────────────────────────────
+
+model Duel {
+  id     String @id @default(cuid())
+  challengerId String
+  opponentId   String
+  // Statut : PENDING (en attente de l'adversaire) | FINISHED | DECLINED
+  status       String @default("PENDING")
+  // Tirs & plongeons : indices de zones 0..5 joints par virgule, ex "0,3,5,1,4"
+  challengerShots String
+  challengerDives String
+  opponentShots   String?
+  opponentDives   String?
+  challengerGoals Int?
+  opponentGoals   Int?
+  stake           Int       @default(0)
+  winnerId        String? // null = match nul
+  createdAt       DateTime  @default(now())
+  resolvedAt      DateTime?
+
+  challenger User @relation("DuelChallenger", fields: [challengerId], references: [id], onDelete: Cascade)
+  opponent   User @relation("DuelOpponent", fields: [opponentId], references: [id], onDelete: Cascade)
+
+  @@index([opponentId, status])
+  @@index([challengerId])
+}
+
+// ───────────────────────────── PRONOSTICS ─────────────────────────────
+
+model Prediction {
+  id            String   @id @default(cuid())
+  userId        String
+  matchId       String
+  predFor       Int
+  predAgainst   Int
+  boosted       Boolean  @default(false) // a utilisé un boost Prono ×2
+  awardedPoints Int? // null = pas encore résolu
+  createdAt     DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, matchId])
+  @@index([matchId])
+}
+
+// ───────────────────────────── NOTIFICATIONS ─────────────────────────────
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  // Type : DUEL | PRONO | BADGE | ROLE | CONVOCATION | INFO
+  type      String   @default("INFO")
+  title     String
+  body      String?
+  link      String? // ex: /dashboard/jeux/duels
+  icon      String? // emoji
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ───────────────────────────── 3ᵉ MI-TEMPS (notes & titres) ─────────────────────────────
+
+model PlayerRating {
+  id          String   @id @default(cuid())
+  matchId     String
+  raterUserId String // qui note (jamais exposé)
+  playerId    String // joueur noté
+  rating      Int // 1..10
+  createdAt   DateTime @default(now())
+
+  @@unique([matchId, raterUserId, playerId])
+  @@index([matchId])
+}
+
+model MatchAward {
+  id           String   @id @default(cuid())
+  matchId      String
+  playerId     String
+  title        String // ex : « Plus gros raté »
+  proposedById String? // membre qui a proposé le titre (null = staff / officiel)
+  createdAt    DateTime @default(now())
+
+  votes AwardVote[]
+
+  @@index([matchId])
+}
+
+// 👍 sur un titre proposé (un vote par membre et par titre)
+model AwardVote {
+  id        String   @id @default(cuid())
+  awardId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  award MatchAward @relation(fields: [awardId], references: [id], onDelete: Cascade)
+
+  @@unique([awardId, userId])
+  @@index([awardId])
+}
+
+// ───────────────────────────── CONTENU & VITRINE ─────────────────────────────
+
+model NewsArticle {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  title       String
+  excerpt     String
+  content     String
+  cover       String?
+  category    String    @default("ACTUALITE")
+  published   Boolean   @default(true)
+  publishedAt DateTime  @default(now())
+  authorName  String?
+}
+
+model Sponsor {
+  id    String @id @default(cuid())
+  name  String
+  logo  String?
+  url   String?
+  // Niveau : PLATINUM | GOLD | SILVER | PARTNER
+  tier  String @default("PARTNER")
+  order Int    @default(0)
+}
+
+model Album {
+  id        String   @id @default(cuid())
+  title     String
+  cover     String?
+  createdAt DateTime @default(now())
+
+  items GalleryItem[]
+}
+
+model GalleryItem {
+  id        String   @id @default(cuid())
+  // Type : PHOTO | VIDEO
+  type      String   @default("PHOTO")
+  url       String
+  caption   String?
+  albumId   String?
+  createdAt DateTime @default(now())
+
+  album Album? @relation(fields: [albumId], references: [id], onDelete: SetNull)
+}
+
+model Standing {
+  id           String  @id @default(cuid())
+  competition  String
+  teamName     String
+  teamId       String?
+  played       Int     @default(0)
+  won          Int     @default(0)
+  drawn        Int     @default(0)
+  lost         Int     @default(0)
+  goalsFor     Int     @default(0)
+  goalsAgainst Int     @default(0)
+  points       Int     @default(0)
+  rank         Int     @default(0)
+  isOurClub    Boolean @default(false)
+
+  team Team? @relation(fields: [teamId], references: [id], onDelete: SetNull)
+}
+
+// ───────────────────────────── MESSAGERIE ─────────────────────────────
+
+model Channel {
+  id       String    @id @default(cuid())
+  key      String    @unique
+  name     String
+  // Accès : ALL | STAFF | DIRIGEANT
+  access   String    @default("ALL")
+  icon     String?
+  order    Int       @default(0)
+  messages Message[]
+}
+
+// ───────────────────────────── COMPO PRÉ-MATCH ─────────────────────────────
+
+model Lineup {
+  id        String   @id @default(cuid())
+  matchId   String   @unique
+  // Formation : 4-4-2 | 4-3-3 | 3-5-2 | 4-2-3-1
+  formation String   @default("4-4-2")
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  match Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  slots LineupSlot[]
+}
+
+model LineupSlot {
+  id         String @id @default(cuid())
+  lineupId   String
+  playerId   String
+  // Rôle : GK | DEF | MID | FWD | SUB
+  role       String
+  slotIndex  Int    // index dans le rôle (0-based)
+
+  lineup Lineup @relation(fields: [lineupId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([lineupId, playerId])
+  @@unique([lineupId, role, slotIndex])
+  @@index([lineupId])
+}
+
+// ───────────────────────────── BLESSURES / INDISPONIBILITÉS ─────────────────────────────
+
+model PlayerStatus {
+  id              String    @id @default(cuid())
+  playerId        String
+  // Type : INJURY | ILLNESS | SUSPENSION | PERSONAL | OTHER
+  type            String    @default("INJURY")
+  description     String?
+  startDate       DateTime  @default(now())
+  estimatedReturn DateTime?
+  resolvedAt      DateTime?
+  createdAt       DateTime  @default(now())
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+}
+
+// ───────────────────────────── ANNONCES STAFF ─────────────────────────────
+
+model Announcement {
+  id        String   @id @default(cuid())
+  authorId  String
+  teamId    String?
+  title     String
+  content   String
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  team   Team? @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  channelId String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
+}

@@ -1,0 +1,23 @@
+# Configuration de déploiement Netlify — ASSJM HUB (Next.js 15)
+# Le runtime Next.js officiel (@netlify/plugin-nextjs) est ajouté automatiquement
+# par Netlify quand il détecte Next ; on le déclare ici pour être explicite.
+
+[build]
+  # build:netlify bascule Prisma en PostgreSQL, génère le client, applique le
+  # schéma (db push) puis build. Le dev local reste en SQLite (script no-op hors prod).
+  command = "npm run build:netlify"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Rappels variables d'environnement à définir dans Netlify (UI → Site settings) :
+#   DATABASE_URL          → connexion Postgres (Netlify DB expose NETLIFY_DATABASE_URL)
+#   AUTH_SECRET           → `npx auth secret`
+#   AUTH_TRUST_HOST       → "true"
+#   NEXT_PUBLIC_SITE_URL  → URL publique du site
+#   MEDIA_STORAGE         → "blobs" (stockage des uploads sur Netlify Blobs)
+#   VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / NEXT_PUBLIC_VAPID_PUBLIC_KEY (push, optionnel)
