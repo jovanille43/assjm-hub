@@ -1,4 +1,4 @@
-import { putImage, mediaUrl } from "@/lib/storage";
+import { putImage } from "@/lib/storage";
 
 const ALLOWED = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 const MAX_BYTES = 8 * 1024 * 1024; // 8 Mo en entrée (on compresse derrière)
@@ -7,7 +7,7 @@ const MAX_DIM = 1024; // dimension max après redimensionnement
 /**
  * Enregistre une image uploadée — redimensionnée et compressée en WebP (via
  * sharp) pour rester légère. Renvoie son URL publique. La persistance passe par
- * `@/lib/storage` : disque local en dev, Netlify Blobs en prod (voir storage.ts).
+ * `@/lib/storage` : disque local en dev, Vercel Blob en prod (voir storage.ts).
  */
 export async function saveUploadedImage(file: File): Promise<{ url?: string; error?: string }> {
   if (!file || file.size === 0) return { error: "Aucun fichier sélectionné." };
@@ -27,8 +27,8 @@ export async function saveUploadedImage(file: File): Promise<{ url?: string; err
       .resize(MAX_DIM, MAX_DIM, { fit: "inside", withoutEnlargement: true })
       .webp({ quality: 80 })
       .toBuffer();
-    await putImage(name, output);
-    return { url: mediaUrl(name) };
+    const url = await putImage(name, output);
+    return { url };
   } catch (err) {
     console.error("saveUploadedImage:", err);
     return { error: "Traitement de l'image impossible. Réessaie plus tard." };
