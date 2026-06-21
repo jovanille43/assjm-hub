@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:netlify": "node scripts/use-postgres.mjs && prisma generate && prisma db push && next build",
+    "build:netlify": "node scripts/use-postgres.mjs && prisma generate && next build",
+    "db:push:prod": "node scripts/use-postgres.mjs && prisma db push",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
