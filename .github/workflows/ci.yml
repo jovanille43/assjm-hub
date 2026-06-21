@@ -33,9 +33,13 @@ jobs:
           node-version: 20
           cache: npm
 
-      # `npm ci` déclenche postinstall → `prisma generate`.
+      # `npm install` (pas `npm ci`) : le lockfile est maintenu sous Windows et
+      # `npm ci` est strict sur les dépendances optionnelles multi-plateformes de
+      # `sharp` → il échoue sous Linux. `npm install` résout les bons binaires
+      # Linux de façon tolérante (c'est aussi ce que fait Vercel au build).
+      # Déclenche postinstall → `prisma generate`.
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Lint
         run: npm run lint
