@@ -79,21 +79,30 @@ export default async function DashboardPage() {
   return (
     <div className="container pb-16">
       <WelcomeModal />
-      {/* En-tête */}
-      <header className="py-8">
-        <span className="eyebrow">
-          <span className="h-px w-6 bg-club" />
-          Tableau de bord
-        </span>
-        <h1 className="mt-2 font-display text-3xl font-extrabold sm:text-4xl">
-          Salut {firstName} 👋
-        </h1>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <Badge variant="navy">{ROLES[role as keyof typeof ROLES] ?? role}</Badge>
-          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-            <Zap className="size-4 text-club" />
-            {user?.points ?? 0} points
-          </span>
+      {/* En-tête premium */}
+      <header className="relative mt-6 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-navy-800 via-navy-900 to-navy-950 p-6 text-white shadow-card sm:p-8">
+        <div className="absolute inset-0 bg-grid opacity-30" />
+        <div className="pointer-events-none absolute -right-16 -top-20 size-56 rounded-full bg-club/25 blur-[90px]" />
+        <div className="relative flex items-center justify-between gap-4">
+          <div>
+            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-blue-100/70">
+              <span className="h-px w-6 bg-club" />
+              Tableau de bord
+            </span>
+            <h1 className="mt-2 font-display text-3xl font-extrabold sm:text-4xl">
+              Salut {firstName} 👋
+            </h1>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur">
+                {ROLES[role as keyof typeof ROLES] ?? role}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-club/20 px-3 py-1 text-xs font-semibold">
+                <Zap className="size-3.5 text-club-300" />
+                {user?.points ?? 0} points
+              </span>
+            </div>
+          </div>
+          <Crest className="hidden h-20 w-auto opacity-90 drop-shadow sm:block" />
         </div>
       </header>
 

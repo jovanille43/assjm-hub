@@ -145,8 +145,6 @@ export function PlayerCard({
           ))}
         </div>
 
-        {/* Brillance qui balaie la carte (au-dessus du contenu) */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-3/5 fut-shine" />
         </div>
       </div>
     </div>
