@@ -17,6 +17,7 @@ const PUB = join(process.cwd(), "public");
 const SOURCE = join(PUB, "icon-source.png");
 const FALLBACK = join(PUB, "logo-assjm.png");
 const NAVY = { r: 14, g: 30, b: 70, alpha: 1 };
+const RED = { r: 225, g: 29, b: 42, alpha: 1 }; // rouge club #E11D2A
 
 const useSource = existsSync(SOURCE);
 const src = useSource ? SOURCE : FALLBACK;
@@ -29,26 +30,30 @@ function roundedMask(size, radiusRatio = 0.2) {
   );
 }
 
-// L'icône fournie a un cadre crème autour du badge → on le DÉTOURE (trim sur la
-// couleur de bord), on remplit le cadre bord-à-bord, on arrondit les coins et on
-// pose le tout sur fond marine : plus aucun liseré blanc, même après le masque iOS.
+// L'icône fournie = badge marine sur fond crème. On garde le CADRAGE d'origine
+// (badge centré avec une marge) mais on remplace le crème des côtés par du ROUGE :
+// on détoure le badge (trim), on arrondit ses coins (les coins crème deviennent
+// transparents), puis on le repose à sa taille d'origine sur un fond rouge plein.
 async function fromSource(size, name) {
-  const over = Math.round(size * 1.09); // léger sur-cadrage…
-  const inset = Math.round((over - size) / 2);
-  const filled = await sharp(src)
-    .trim({ threshold: 55 }) // enlève le pourtour crème + l'ombre douce
-    .resize(over, over, { fit: "cover" })
-    .extract({ left: inset, top: inset, width: size, height: size }) // …puis rogne le liseré résiduel
-    .toBuffer();
-  const rounded = await sharp(filled)
-    .composite([{ input: roundedMask(size), blend: "dest-in" }]) // coins crème → transparents
+  const trimmed = await sharp(src).trim({ threshold: 55 }).toBuffer(); // badge sans le crème
+  const meta0 = await sharp(src).metadata();
+  const metaT = await sharp(trimmed).metadata();
+  // Fraction occupée par le badge dans l'original → conserve la marge d'origine.
+  const frac = Math.min(1, (metaT.width || meta0.width) / (meta0.width || 1));
+  const inner = Math.max(1, Math.round(size * frac));
+  const grow = Math.round(inner * 1.06); // léger sur-cadrage…
+  const off = Math.round((grow - inner) / 2);
+  const badge = await sharp(trimmed)
+    .resize(grow, grow, { fit: "cover" })
+    .extract({ left: off, top: off, width: inner, height: inner }) // …rogne le halo d'ombre
+    .composite([{ input: roundedMask(inner, 0.2), blend: "dest-in" }]) // coins crème → transparents
     .png()
     .toBuffer();
-  await sharp({ create: { width: size, height: size, channels: 4, background: NAVY } })
-    .composite([{ input: rounded }]) // fond marine sous les coins
+  await sharp({ create: { width: size, height: size, channels: 4, background: RED } })
+    .composite([{ input: badge, gravity: "center" }]) // marge rouge autour du badge
     .png()
     .toFile(join(PUB, name));
-  console.log(`✓ ${name} (${size}×${size}) — depuis icon-source.png (cadre crème retiré)`);
+  console.log(`✓ ${name} (${size}×${size}) — badge sur fond rouge (crème remplacé)`);
 }
 
 // Repli : blason détouré centré sur fond marine, avec marge.
