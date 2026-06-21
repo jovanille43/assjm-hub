@@ -112,14 +112,17 @@ export function Hero({
             variants={fadeUp}
             initial="hidden"
             animate="show"
-            className="mt-12 flex gap-8"
+            className="mt-10 grid max-w-md grid-cols-3 gap-3"
           >
             {chips.map((c) => (
-              <div key={c.label}>
+              <div
+                key={c.label}
+                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur transition-colors hover:border-club/40"
+              >
                 <div className="font-display text-3xl font-bold text-white">
                   {c.value}
                 </div>
-                <div className="text-xs uppercase tracking-wider text-blue-100/60">
+                <div className="mt-0.5 text-[11px] uppercase tracking-wider text-blue-100/60">
                   {c.label}
                 </div>
               </div>
