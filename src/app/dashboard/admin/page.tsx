@@ -4,6 +4,7 @@ import { fr } from "date-fns/locale";
 import {
   FileText,
   Goal,
+  Handshake,
   ImageUp,
   MessagesSquare,
   Newspaper,
@@ -24,7 +25,8 @@ import { PlayerStatsManager } from "@/components/admin/player-stats-manager";
 import { TeamManager } from "@/components/admin/team-manager";
 import { GalleryUploader } from "@/components/admin/gallery-uploader";
 import { SeasonControl } from "@/components/admin/season-control";
-import { getAdminOverview, getAllNews, getAllUsers, getAllPlayers, getAllTeams } from "@/lib/admin";
+import { SponsorManager } from "@/components/admin/sponsor-manager";
+import { getAdminOverview, getAllNews, getAllUsers, getAllPlayers, getAllTeams, getAllSponsors } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -33,12 +35,13 @@ export default async function AdminPage() {
   if (!session?.user) redirect("/connexion");
   if (session.user.role !== "ADMIN") redirect("/dashboard");
 
-  const [overview, users, news, players, teams] = await Promise.all([
+  const [overview, users, news, players, teams, sponsors] = await Promise.all([
     getAdminOverview(),
     getAllUsers(),
     getAllNews(),
     getAllPlayers(),
     getAllTeams(),
+    getAllSponsors(),
   ]);
 
   const newsForClient = news.map((n) => ({
@@ -134,6 +137,14 @@ export default async function AdminPage() {
             <ImageUp className="size-5 text-club" /> Ajouter à la galerie
           </h2>
           <GalleryUploader />
+        </Card>
+
+        {/* Sponsors & partenaires */}
+        <Card className="p-6">
+          <h2 className="mb-4 flex items-center gap-2 font-display text-xl font-bold">
+            <Handshake className="size-5 text-club" /> Sponsors & partenaires
+          </h2>
+          <SponsorManager sponsors={sponsors} />
         </Card>
 
         {/* Saison */}

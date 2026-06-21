@@ -25,6 +25,10 @@ export function getAllNews() {
   return db.newsArticle.findMany({ orderBy: { publishedAt: "desc" } });
 }
 
+export function getAllSponsors() {
+  return db.sponsor.findMany({ orderBy: [{ order: "asc" }, { name: "asc" }] });
+}
+
 export function getAllTeams() {
   return db.team.findMany({
     orderBy: { name: "asc" },

@@ -307,3 +307,42 @@ export async function deleteTeam(teamId: string): Promise<{ error?: string }> {
   TEAM_PATHS.forEach((p) => revalidatePath(p));
   return {};
 }
+
+const SPONSOR_TIERS = ["PLATINUM", "GOLD", "SILVER", "PARTNER"];
+
+export async function createSponsor(formData: FormData): Promise<{ error?: string }> {
+  const guard = await requireStaff();
+  if (guard.error) return guard;
+
+  const name = (formData.get("name") as string)?.trim();
+  if (!name) return { error: "Nom du sponsor requis." };
+  const url = (formData.get("url") as string)?.trim() || null;
+  const tierRaw = (formData.get("tier") as string)?.trim() || "PARTNER";
+  const tier = SPONSOR_TIERS.includes(tierRaw) ? tierRaw : "PARTNER";
+
+  // Logo optionnel : on accepte un fichier image (uploadé vers le stockage).
+  let logo: string | null = null;
+  const file = formData.get("logo");
+  if (file && typeof file !== "string" && (file as Blob).size) {
+    const res = await saveUploadedImage(file as File);
+    if (res.error || !res.url) return { error: res.error ?? "Échec de l'upload du logo." };
+    logo = res.url;
+  }
+
+  const max = await db.sponsor.aggregate({ _max: { order: true } });
+  const order = (max._max.order ?? 0) + 1;
+
+  await db.sponsor.create({ data: { name, url, tier, logo, order } });
+  revalidatePath("/dashboard/admin");
+  revalidatePath("/");
+  return {};
+}
+
+export async function deleteSponsor(id: string): Promise<{ error?: string }> {
+  const guard = await requireStaff();
+  if (guard.error) return guard;
+  await db.sponsor.delete({ where: { id } });
+  revalidatePath("/dashboard/admin");
+  revalidatePath("/");
+  return {};
+}
