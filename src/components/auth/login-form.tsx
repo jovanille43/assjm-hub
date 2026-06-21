@@ -6,13 +6,6 @@ import { signIn } from "next-auth/react";
 import { Loader2, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const DEMO = [
-  { label: "Admin", email: "admin@assjm.fr" },
-  { label: "Coach", email: "coach@assjm.fr" },
-  { label: "Joueur", email: "leo@assjm.fr" },
-  { label: "Supporter", email: "supporter@assjm.fr" },
-];
-
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -94,25 +87,6 @@ export function LoginForm() {
           Se connecter
         </Button>
       </form>
-
-      <div className="mt-6 border-t border-white/10 pt-5">
-        <p className="mb-3 text-center text-xs uppercase tracking-wider text-blue-100/50">
-          Connexion express (démo · mdp&nbsp;: assjm2026)
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          {DEMO.map((d) => (
-            <button
-              key={d.email}
-              type="button"
-              disabled={loading}
-              onClick={() => login(d.email, "assjm2026")}
-              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm font-medium text-blue-100 transition-colors hover:border-club hover:bg-club/10 hover:text-white disabled:opacity-50"
-            >
-              {d.label}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
