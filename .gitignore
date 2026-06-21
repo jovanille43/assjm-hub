@@ -42,3 +42,5 @@ yarn-error.log*
 
 # uploads disque local (en prod : Netlify Blobs)
 /public/uploads
+
+.vercel
