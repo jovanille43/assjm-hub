@@ -21,10 +21,34 @@ const NAVY = { r: 14, g: 30, b: 70, alpha: 1 };
 const useSource = existsSync(SOURCE);
 const src = useSource ? SOURCE : FALLBACK;
 
-// L'icône d'app fournie remplit déjà le cadre → simple redimensionnement.
+// Masque coins arrondis (pour évacuer les coins crème du badge → fond marine).
+function roundedMask(size, radiusRatio = 0.2) {
+  const r = Math.round(size * radiusRatio);
+  return Buffer.from(
+    `<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg"><rect width="${size}" height="${size}" rx="${r}" ry="${r}" fill="#fff"/></svg>`,
+  );
+}
+
+// L'icône fournie a un cadre crème autour du badge → on le DÉTOURE (trim sur la
+// couleur de bord), on remplit le cadre bord-à-bord, on arrondit les coins et on
+// pose le tout sur fond marine : plus aucun liseré blanc, même après le masque iOS.
 async function fromSource(size, name) {
-  await sharp(src).resize(size, size, { fit: "cover" }).png().toFile(join(PUB, name));
-  console.log(`✓ ${name} (${size}×${size}) — depuis icon-source.png`);
+  const over = Math.round(size * 1.09); // léger sur-cadrage…
+  const inset = Math.round((over - size) / 2);
+  const filled = await sharp(src)
+    .trim({ threshold: 55 }) // enlève le pourtour crème + l'ombre douce
+    .resize(over, over, { fit: "cover" })
+    .extract({ left: inset, top: inset, width: size, height: size }) // …puis rogne le liseré résiduel
+    .toBuffer();
+  const rounded = await sharp(filled)
+    .composite([{ input: roundedMask(size), blend: "dest-in" }]) // coins crème → transparents
+    .png()
+    .toBuffer();
+  await sharp({ create: { width: size, height: size, channels: 4, background: NAVY } })
+    .composite([{ input: rounded }]) // fond marine sous les coins
+    .png()
+    .toFile(join(PUB, name));
+  console.log(`✓ ${name} (${size}×${size}) — depuis icon-source.png (cadre crème retiré)`);
 }
 
 // Repli : blason détouré centré sur fond marine, avec marge.

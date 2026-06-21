@@ -31,17 +31,22 @@ export function usingBlobs(): boolean {
 }
 
 /**
- * Persiste une image (déjà compressée en WebP) et renvoie son URL publique.
+ * Persiste une image et renvoie son URL publique. `contentType` décrit les
+ * octets stockés (image/webp si compressé via sharp, sinon le type d'origine).
  * Pour Vercel Blob, l'URL est absolue (CDN) ; sinon relative au site.
  */
-export async function putImage(name: string, data: Buffer): Promise<string> {
+export async function putImage(
+  name: string,
+  data: Buffer,
+  contentType = "image/webp",
+): Promise<string> {
   if (USE_VERCEL_BLOB) {
     const { put } = await import("@vercel/blob");
     // `put` lit automatiquement BLOB_READ_WRITE_TOKEN dans l'environnement.
     // Le nom est déjà unique (timestamp + aléa) → pas de suffixe aléatoire.
     const res = await put(`${STORE}/${name}`, data, {
       access: "public",
-      contentType: "image/webp",
+      contentType,
       addRandomSuffix: false,
     });
     return res.url;

@@ -133,17 +133,18 @@ export function PlayerCard({
           <Crest className="h-12 w-auto drop-shadow" />
         </div>
 
-        {/* Photo / monogramme central */}
-        <div className="relative my-3 grid flex-1 place-items-center">
+        {/* Photo / monogramme central — flexible : absorbe l'espace restant
+            (min-h-0 + h-full plafonné) pour que les 6 stats tiennent toujours. */}
+        <div className="relative my-2 grid min-h-0 flex-1 place-items-center">
           {player.photo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={player.photo}
               alt={`${player.firstName} ${player.lastName}`}
-              className="size-24 rounded-full object-cover ring-2 ring-white/30"
+              className="aspect-square h-full max-h-24 min-h-14 w-auto rounded-full object-cover ring-2 ring-white/30"
             />
           ) : (
-            <div className="grid size-24 place-items-center rounded-full bg-gradient-to-br from-white/20 to-white/5 font-display text-3xl font-extrabold ring-2 ring-white/20">
+            <div className="grid aspect-square h-full max-h-24 min-h-14 w-auto place-items-center rounded-full bg-gradient-to-br from-white/20 to-white/5 font-display text-3xl font-extrabold ring-2 ring-white/20">
               {initials(`${player.firstName} ${player.lastName}`)}
             </div>
           )}
