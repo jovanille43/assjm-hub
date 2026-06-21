@@ -1,4 +1,3 @@
-import sharp from "sharp";
 import { putImage, mediaUrl } from "@/lib/storage";
 
 const ALLOWED = ["image/png", "image/jpeg", "image/webp", "image/gif"];
@@ -19,6 +18,10 @@ export async function saveUploadedImage(file: File): Promise<{ url?: string; err
   const input = Buffer.from(await file.arrayBuffer());
 
   try {
+    // Import dynamique : `sharp` est un module natif. Le charger paresseusement
+    // évite qu'un échec de chargement (ex. binaire manquant sur la plateforme)
+    // ne casse au niveau module toutes les actions qui importent ce fichier.
+    const { default: sharp } = await import("sharp");
     const output = await sharp(input)
       .rotate() // respecte l'orientation EXIF
       .resize(MAX_DIM, MAX_DIM, { fit: "inside", withoutEnlargement: true })
@@ -26,7 +29,8 @@ export async function saveUploadedImage(file: File): Promise<{ url?: string; err
       .toBuffer();
     await putImage(name, output);
     return { url: mediaUrl(name) };
-  } catch {
-    return { error: "Image illisible ou corrompue." };
+  } catch (err) {
+    console.error("saveUploadedImage:", err);
+    return { error: "Traitement de l'image impossible. Réessaie plus tard." };
   }
 }
